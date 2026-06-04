@@ -343,6 +343,16 @@ body {
   color: var(--blue-800);
   background: var(--blue-50);
   border: 1px solid var(--blue-100);
+  animation: fadeIn 0.2s ease;
+}
+
+.field__textarea-wrap .field__textarea:focus {
+  border-color: var(--blue-500);
+}
+
+.field__textarea-wrap:has(.btn-voz--ativo) .field__textarea {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
 }
 
 .field__voz-status--erro {
