@@ -60,14 +60,14 @@
 
           <div class="field">
             <label for="matricula" class="field__label">Matrícula <span class="required">*</span></label>
-            <input type="text" id="matricula" name="matricula" class="field__input" placeholder="Digite sua matrícula" autocomplete="username" required>
+            <input type="text" id="matricula" name="matricula" class="field__input field__input--numero" inputmode="numeric" pattern="[0-9]*" placeholder="Somente números" autocomplete="username" required>
             <span class="field__hint">Unidade e matrícula são lembradas neste aparelho</span>
             <span class="field__error" id="matriculaError" role="alert"></span>
           </div>
 
           <div class="field">
             <label for="frota" class="field__label">Frota do Equipamento <span class="required">*</span></label>
-            <input type="text" id="frota" name="frota" class="field__input" placeholder="Ex: 12345" autocomplete="off" required>
+            <input type="text" id="frota" name="frota" class="field__input field__input--numero" inputmode="numeric" pattern="[0-9]*" placeholder="Somente números" autocomplete="off" required>
             <span class="field__error" id="frotaError" role="alert"></span>
           </div>
 

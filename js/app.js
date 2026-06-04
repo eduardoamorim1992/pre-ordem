@@ -94,10 +94,21 @@
         fields.unidade.value = prefs.unidade;
       }
       if (prefs.matricula) {
-        fields.matricula.value = prefs.matricula;
+        fields.matricula.value = somenteNumeros(prefs.matricula);
       }
     } catch {
       /* ignora prefs inválidas */
+    }
+  }
+
+  function somenteNumeros(valor) {
+    return String(valor || '').replace(/\D/g, '');
+  }
+
+  function aplicarSomenteNumeros(elemento) {
+    const limpo = somenteNumeros(elemento.value);
+    if (elemento.value !== limpo) {
+      elemento.value = limpo;
     }
   }
 
@@ -105,7 +116,7 @@
     if (!fields.unidade.value || !fields.matricula.value.trim()) return;
     localStorage.setItem(PREFS_KEY, JSON.stringify({
       unidade: fields.unidade.value,
-      matricula: fields.matricula.value.trim()
+      matricula: somenteNumeros(fields.matricula.value)
     }));
   }
 
@@ -149,12 +160,17 @@
       setError('unidade', 'Selecione a unidade');
       valid = false;
     }
-    if (!fields.matricula.value.trim()) {
-      setError('matricula', 'Informe a matrícula');
+    const matricula = somenteNumeros(fields.matricula.value);
+    fields.matricula.value = matricula;
+    if (!matricula) {
+      setError('matricula', 'Informe a matrícula (somente números)');
       valid = false;
     }
-    if (!fields.frota.value.trim()) {
-      setError('frota', 'Informe a frota do equipamento');
+
+    const frota = somenteNumeros(fields.frota.value);
+    fields.frota.value = frota;
+    if (!frota) {
+      setError('frota', 'Informe a frota (somente números)');
       valid = false;
     }
     if (!fields.sistema.value) {
@@ -182,8 +198,8 @@
       preOrdem: '',
       dataHora: new Date().toISOString(),
       unidade: { codigo: unidadeCod, nome: UNIDADES[unidadeCod] },
-      matricula: fields.matricula.value.trim(),
-      frota: fields.frota.value.trim(),
+      matricula: somenteNumeros(fields.matricula.value),
+      frota: somenteNumeros(fields.frota.value),
       sistema: { codigo: sistemaCod, nome: SISTEMAS[sistemaCod] },
       descricao: PreOrdemTexto.normalizarDescricao(fields.descricao.value)
     };
@@ -427,8 +443,28 @@
     if (btn.dataset.action === 'export') exportarDados([item], btn.dataset.formato);
   });
 
+  ['matricula', 'frota'].forEach(function (nome) {
+    fields[nome].addEventListener('input', function () {
+      aplicarSomenteNumeros(fields[nome]);
+      if (fields[nome].classList.contains('field__input--error')) {
+        fields[nome].classList.remove('field__input--error');
+        errors[nome].textContent = '';
+      }
+    });
+    fields[nome].addEventListener('paste', function (e) {
+      e.preventDefault();
+      const texto = (e.clipboardData || window.clipboardData).getData('text');
+      const inicio = fields[nome].selectionStart;
+      const fim = fields[nome].selectionEnd;
+      const atual = fields[nome].value;
+      fields[nome].value =
+        somenteNumeros(atual.slice(0, inicio) + texto + atual.slice(fim));
+      fields[nome].dispatchEvent(new Event('input'));
+    });
+  });
+
   Object.keys(fields).forEach(function (key) {
-    if (key === 'descricao') return;
+    if (key === 'descricao' || key === 'matricula' || key === 'frota') return;
     fields[key].addEventListener('input', function () {
       if (fields[key].classList.contains('field__input--error')) {
         fields[key].classList.remove('field__input--error');
