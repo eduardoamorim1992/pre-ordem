@@ -40,12 +40,11 @@
     return 'pre-ordem-' + mat + '-' + data;
   }
 
-  function baixarArquivo(conteudo, nome, tipoMime) {
-    const blob = new Blob([conteudo], { type: tipoMime });
-    const url = URL.createObjectURL(blob);
+  function baixarBlob(info) {
+    const url = URL.createObjectURL(info.blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = nome;
+    link.download = info.filename;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -58,8 +57,8 @@
     return t;
   }
 
-  function exportarCSV(lista) {
-    if (!lista.length) return;
+  function gerarBlobCSV(lista) {
+    if (!lista.length) return null;
 
     const cabecalhos = obterCabecalhos();
     const linhas = linhasDaLista(lista);
@@ -72,16 +71,18 @@
       .join('\r\n');
 
     const bom = '\uFEFF';
-    baixarArquivo(bom + corpo, nomeArquivoBase(lista) + '.csv', 'text/csv;charset=utf-8');
+    return {
+      blob: new Blob([bom + corpo], { type: 'text/csv;charset=utf-8' }),
+      filename: nomeArquivoBase(lista) + '.csv',
+      mime: 'text/csv'
+    };
   }
 
-  function exportarXLSX(lista) {
-    if (!lista.length) return;
+  function gerarBlobXLSX(lista) {
+    if (!lista.length) return null;
 
     if (!global.XLSX) {
-      exportarCSV(lista);
-      alert('Biblioteca Excel nao carregada. O arquivo foi exportado em CSV.');
-      return;
+      return gerarBlobCSV(lista);
     }
 
     const cabecalhos = obterCabecalhos();
@@ -100,7 +101,30 @@
 
     const livro = global.XLSX.utils.book_new();
     global.XLSX.utils.book_append_sheet(livro, planilha, 'Pre-Ordens');
-    global.XLSX.writeFile(livro, nomeArquivoBase(lista) + '.xlsx');
+    const buffer = global.XLSX.write(livro, { bookType: 'xlsx', type: 'array' });
+
+    return {
+      blob: new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }),
+      filename: nomeArquivoBase(lista) + '.xlsx',
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+  }
+
+  function exportarCSV(lista) {
+    const info = gerarBlobCSV(lista);
+    if (info) baixarBlob(info);
+  }
+
+  function exportarXLSX(lista) {
+    if (!lista.length) return;
+    if (!global.XLSX) {
+      exportarCSV(lista);
+      alert('Biblioteca Excel nao carregada. O arquivo foi exportado em CSV.');
+      return;
+    }
+    baixarBlob(gerarBlobXLSX(lista));
   }
 
   function exportar(lista, formato) {
@@ -112,6 +136,8 @@
   global.PreOrdemPlanilha = {
     exportar: exportar,
     exportarCSV: exportarCSV,
-    exportarXLSX: exportarXLSX
+    exportarXLSX: exportarXLSX,
+    gerarBlobCSV: gerarBlobCSV,
+    gerarBlobXLSX: gerarBlobXLSX
   };
 })(window);

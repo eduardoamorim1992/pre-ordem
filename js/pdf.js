@@ -124,10 +124,9 @@
     return 'pre-ordem-' + mat + '-' + data + '.pdf';
   }
 
-  function exportarPreOrdemPDF(dados) {
+  function criarDocumentoPDF(lista) {
     if (!global.jspdf || !global.jspdf.jsPDF) {
-      alert('Biblioteca PDF nao carregada. Verifique sua conexao.');
-      return;
+      throw new Error('Biblioteca PDF nao carregada');
     }
 
     const { jsPDF } = global.jspdf;
@@ -140,41 +139,62 @@
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100, 116, 139);
-    doc.text('Exportado em ' + formatarData(new Date().toISOString()), MARGIN, 20);
 
-    desenharTabela(doc, [dados], 26);
+    if (lista.length > 1) {
+      doc.text(
+        lista.length + ' registro(s) · Exportado em ' + formatarData(new Date().toISOString()),
+        MARGIN,
+        20
+      );
+    } else {
+      doc.text('Exportado em ' + formatarData(new Date().toISOString()), MARGIN, 20);
+    }
 
-    doc.save(nomeArquivo(dados));
+    desenharTabela(doc, lista, 26);
+    return doc;
+  }
+
+  function gerarBlob(lista) {
+    if (!lista.length) return null;
+    const doc = criarDocumentoPDF(lista);
+    const dados = lista.length === 1 ? lista[0] : null;
+    return {
+      blob: doc.output('blob'),
+      filename: nomeArquivo(dados, lista.length > 1 ? lista : null),
+      mime: 'application/pdf'
+    };
+  }
+
+  function baixarBlob(info) {
+    const url = URL.createObjectURL(info.blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = info.filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportarPreOrdemPDF(dados) {
+    try {
+      baixarBlob(gerarBlob([dados]));
+    } catch {
+      alert('Biblioteca PDF nao carregada. Verifique sua conexao.');
+    }
   }
 
   function exportarTodasPDF(lista) {
     if (!lista.length) return;
-
-    if (!global.jspdf || !global.jspdf.jsPDF) {
+    try {
+      baixarBlob(gerarBlob(lista));
+    } catch {
       alert('Biblioteca PDF nao carregada. Verifique sua conexao.');
-      return;
     }
-
-    const { jsPDF } = global.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-    doc.setFontSize(11);
-    doc.setTextColor(37, 99, 235);
-    doc.setFont(undefined, 'bold');
-    doc.text('SOLICITACOES DE PRE-ORDEM', MARGIN, 14);
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(lista.length + ' registro(s) · Exportado em ' + formatarData(new Date().toISOString()), MARGIN, 20);
-
-    desenharTabela(doc, lista, 26);
-
-    doc.save(nomeArquivo(null, lista));
   }
 
   global.PreOrdemPDF = {
     exportar: exportarPreOrdemPDF,
     exportarTodas: exportarTodasPDF,
+    gerarBlob: gerarBlob,
     formatarData: formatarData,
     HEADERS: HEADERS
   };

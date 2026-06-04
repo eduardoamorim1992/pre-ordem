@@ -122,6 +122,10 @@
 
   function exportarDados(lista, formato) {
     if (!lista || !lista.length) return;
+    if (typeof PreOrdemCompartilhar !== 'undefined') {
+      PreOrdemCompartilhar.abrir(lista, formato);
+      return;
+    }
     if (formato === 'pdf') {
       if (lista.length === 1) PreOrdemPDF.exportar(lista[0]);
       else PreOrdemPDF.exportarTodas(lista);
@@ -342,6 +346,7 @@
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    if (typeof PreOrdemVoz !== 'undefined') PreOrdemVoz.parar();
     if (!validate()) {
       const first = form.querySelector('.field__input--error');
       if (first) first.focus();
@@ -372,6 +377,7 @@
   });
 
   btnLimpar.addEventListener('click', function () {
+    if (typeof PreOrdemVoz !== 'undefined') PreOrdemVoz.parar();
     form.reset();
     clearErrors();
     carregarPreferencias();
@@ -472,6 +478,14 @@
       }
     });
   });
+
+  if (typeof PreOrdemVoz !== 'undefined') {
+    PreOrdemVoz.init({
+      textarea: fields.descricao,
+      botao: document.getElementById('btnFalarDescricao'),
+      status: document.getElementById('vozStatus')
+    });
+  }
 
   carregarPreferencias();
   atualizarUI();

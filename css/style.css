@@ -266,9 +266,95 @@ body {
   cursor: pointer;
 }
 
+.field__textarea-wrap {
+  position: relative;
+}
+
+.field__textarea-wrap .field__textarea {
+  padding-right: 5.5rem;
+  min-height: 110px;
+}
+
 .field__textarea {
   resize: vertical;
-  min-height: 110px;
+}
+
+.btn-voz {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 52px;
+  padding: 0.45rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border: 1.5px solid var(--blue-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.btn-voz:hover:not(:disabled) {
+  background: var(--blue-100);
+  border-color: var(--blue-400);
+}
+
+.btn-voz:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-voz--ativo {
+  color: #fff;
+  background: var(--red-500);
+  border-color: #dc2626;
+  animation: pulsoVoz 1.2s ease-in-out infinite;
+}
+
+.btn-voz--ativo:hover {
+  background: #dc2626;
+}
+
+@keyframes pulsoVoz {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.btn-voz__icon {
+  flex-shrink: 0;
+}
+
+.field__voz-status {
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  line-height: 1.35;
+}
+
+.field__voz-status--ouvindo {
+  color: var(--blue-800);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+}
+
+.field__voz-status--erro {
+  color: #b91c1c;
+  background: var(--red-50);
+  border: 1px solid #fecaca;
+}
+
+.field__tools-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .field__textarea--upper {
@@ -280,9 +366,10 @@ body {
 .field__tools {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-top: 0.35rem;
 }
 
 .field__hint {
@@ -757,6 +844,111 @@ body {
 .detail__data {
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+/* ===== Modal compartilhar ===== */
+.modal__content--share {
+  max-width: 400px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.share__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin-bottom: 0.35rem;
+  padding-right: 2rem;
+}
+
+.share__resumo {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.share__aviso {
+  font-size: 0.75rem;
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.share__opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.share__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--slate-900);
+  background: var(--slate-50);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  text-align: left;
+}
+
+.share__btn svg {
+  flex-shrink: 0;
+  color: var(--slate-500);
+}
+
+.share__btn[data-acao="whatsapp"] svg {
+  color: #25d366;
+}
+
+.share__btn:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+}
+
+.share__btn span {
+  display: block;
+  flex: 1;
+}
+
+.share__btn small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
+.share__btn--primary {
+  background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+  color: #fff;
+  border: none;
+  flex-wrap: wrap;
+}
+
+.share__btn--primary svg {
+  color: #fff;
+}
+
+.share__btn--primary small {
+  color: rgba(255, 255, 255, 0.85);
+  width: 100%;
+  margin-left: 2.5rem;
+}
+
+.share__btn--primary:hover {
+  filter: brightness(1.05);
+  background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
 }
 
 /* ===== Responsive ===== */
