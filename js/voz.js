@@ -5,7 +5,7 @@
     global.SpeechRecognition || global.webkitSpeechRecognition;
 
   const IDIOMA = 'pt-BR';
-  const PAUSA_REINICIO_MS = 400;
+  const GRACA_PARAR_MS = 700;
 
   let textarea = null;
   let btnFalar = null;
@@ -13,15 +13,20 @@
   let recognition = null;
 
   let ouvindo = false;
-  let reiniciando = false;
+  let dedoAtivo = false;
+  let timerParar = null;
   let timerReinicio = null;
+  let ignorarClick = false;
 
-  /** Texto já confirmado (finais) nesta sessão de ditado */
-  let textoConfirmado = '';
-  /** Índice do último resultado final já aplicado */
-  let indiceFinalProcessado = 0;
-  /** Evita inserir o mesmo trecho duas vezes seguidas */
-  let ultimoTrechoFinal = '';
+  const ehIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  const ehMobile =
+    ehIOS ||
+    /Android/i.test(navigator.userAgent) ||
+    global.matchMedia('(max-width: 768px)').matches ||
+    global.matchMedia('(pointer: coarse)').matches;
 
   function suportado() {
     return !!SpeechRecognition;
@@ -34,12 +39,8 @@
     return String(texto || '').toLocaleUpperCase('pt-BR');
   }
 
-  function juntarTexto(base, extra) {
-    const b = String(base || '').trimEnd();
-    const e = String(extra || '').trim();
-    if (!e) return b;
-    if (!b) return e;
-    return b + ' ' + e;
+  function normalizarParaComparar(texto) {
+    return paraMaiusculas(texto).replace(/\s+/g, ' ').trim();
   }
 
   function atualizarStatus(texto, tipo) {
@@ -50,142 +51,145 @@
     if (tipo) statusEl.classList.add('field__voz-status--' + tipo);
   }
 
+  function labelBotao(texto) {
+    if (!btnFalar) return;
+    btnFalar.querySelector('.btn-voz__label').textContent = texto;
+  }
+
   function atualizarBotao(ativo) {
     if (!btnFalar) return;
     btnFalar.classList.toggle('btn-voz--ativo', ativo);
     btnFalar.setAttribute('aria-pressed', ativo ? 'true' : 'false');
-    btnFalar.querySelector('.btn-voz__label').textContent = ativo ? 'Parar' : 'Falar';
+    if (ativo) {
+      labelBotao(ehMobile ? 'Solte p/ parar' : 'Parar');
+    } else {
+      labelBotao(ehMobile ? 'Segure p/ falar' : 'Falar');
+    }
   }
 
-  function refletirNoCampo(previewInterim) {
+  function anexarTrecho(trecho) {
     if (!textarea) return;
 
-    const interim = String(previewInterim || '').trim();
-    const exibicao = paraMaiusculas(juntarTexto(textoConfirmado, interim));
-
-    if (textarea.value !== exibicao) {
-      textarea.value = exibicao;
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    textarea.scrollTop = textarea.scrollHeight;
-  }
-
-  function aplicarTrechoFinal(trecho) {
-    const limpo = String(trecho || '').trim();
+    const limpo = normalizarParaComparar(trecho);
     if (!limpo) return;
 
-    if (limpo === ultimoTrechoFinal) return;
+    const atual = normalizarParaComparar(textarea.value);
 
-    const confirmadoUpper = paraMaiusculas(textoConfirmado);
-    const trechoUpper = paraMaiusculas(limpo);
-
-    if (confirmadoUpper.endsWith(trechoUpper)) return;
-
-    textoConfirmado = juntarTexto(textoConfirmado, limpo);
-    ultimoTrechoFinal = limpo;
-    refletirNoCampo('');
-  }
-
-  function resetarSessao(manterTexto) {
-    indiceFinalProcessado = 0;
-    ultimoTrechoFinal = '';
-    if (!manterTexto) {
-      textoConfirmado = textarea ? textarea.value : '';
+    if (!atual) {
+      textarea.value = limpo;
+    } else if (atual === limpo || atual.endsWith(' ' + limpo) || atual.endsWith(limpo)) {
+      return;
     } else {
-      textoConfirmado = textarea ? textarea.value : textoConfirmado;
+      const palavrasNovas = limpo.split(' ');
+      const palavrasAtual = atual.split(' ');
+      const n = palavrasNovas.length;
+      const ultimas = palavrasAtual.slice(-n).join(' ');
+      if (ultimas === limpo) return;
+
+      if (limpo.indexOf(atual) === 0) {
+        textarea.value = limpo;
+      } else {
+        textarea.value = atual + ' ' + limpo;
+      }
     }
-  }
 
-  function vincularEventos(rec) {
-    rec.onstart = function () {
-      reiniciando = false;
-      indiceFinalProcessado = 0;
-      ultimoTrechoFinal = '';
-      atualizarBotao(true);
-      atualizarStatus('Ouvindo… fale em português (Brasil)', 'ouvindo');
-    };
-
-    rec.onresult = function (event) {
-      let interim = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const resultado = event.results[i];
-        const trecho = resultado[0].transcript;
-
-        if (resultado.isFinal) {
-          if (i >= indiceFinalProcessado) {
-            aplicarTrechoFinal(trecho);
-            indiceFinalProcessado = i + 1;
-          }
-        } else {
-          interim += trecho;
-        }
-      }
-
-      refletirNoCampo(interim);
-
-      if (interim.trim()) {
-        atualizarStatus('Ouvindo: ' + paraMaiusculas(interim.trim()), 'ouvindo');
-      } else if (ouvindo) {
-        atualizarStatus('Ouvindo… fale em português (Brasil)', 'ouvindo');
-      }
-    };
-
-    rec.onerror = function (event) {
-      if (event.error === 'no-speech' && ouvindo) {
-        agendarReinicio();
-        return;
-      }
-
-      if (event.error === 'aborted') return;
-
-      const erros = {
-        'not-allowed':
-          'Permissão do microfone negada. Libere o microfone nas configurações.',
-        'service-not-allowed':
-          'Microfone bloqueado. Use HTTPS ou permita o acesso ao site.',
-        'audio-capture': 'Microfone não encontrado ou indisponível.',
-        network: 'Erro de rede. Verifique sua conexão.'
-      };
-
-      const msg = erros[event.error] || 'Não foi possível usar o reconhecimento de voz.';
-      atualizarStatus(msg, 'erro');
-      parar(true);
-    };
-
-    rec.onend = function () {
-      refletirNoCampo('');
-
-      if (ouvindo && !reiniciando) {
-        agendarReinicio();
-      } else if (!ouvindo) {
-        atualizarBotao(false);
-      }
-    };
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.scrollTop = textarea.scrollHeight;
   }
 
   function criarReconhecimento() {
     const rec = new SpeechRecognition();
     rec.lang = IDIOMA;
-    rec.continuous = true;
-    rec.interimResults = true;
+    rec.continuous = false;
+    rec.interimResults = !ehIOS;
     rec.maxAlternatives = 1;
-    vincularEventos(rec);
     return rec;
   }
 
-  function agendarReinicio() {
-    if (!ouvindo || reiniciando) return;
+  function vincularEventos(rec) {
+    rec.onstart = function () {
+      ouvindo = true;
+      atualizarBotao(true);
+      atualizarStatus(
+        ehMobile
+          ? 'Fale agora… solte o botão quando terminar'
+          : 'Ouvindo em português (Brasil)…',
+        'ouvindo'
+      );
+    };
+
+    rec.onresult = function (event) {
+      let preview = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const item = event.results[i];
+        const texto = item[0].transcript;
+
+        if (item.isFinal) {
+          anexarTrecho(texto);
+        } else {
+          preview += texto;
+        }
+      }
+
+      if (preview.trim()) {
+        atualizarStatus('Ouvindo: ' + normalizarParaComparar(preview), 'ouvindo');
+      }
+    };
+
+    rec.onerror = function (event) {
+      if (event.error === 'aborted') return;
+
+      if (event.error === 'no-speech') {
+        if (dedoAtivo || ouvindo) {
+          reiniciarEscuta();
+        }
+        return;
+      }
+
+      const erros = {
+        'not-allowed': 'Permita o microfone nas configurações do celular/navegador.',
+        'service-not-allowed': 'Microfone bloqueado. Abra o site pelo Chrome ou Safari.',
+        'audio-capture': 'Microfone indisponível.',
+        network: 'Sem conexão. O ditado precisa de internet no celular.'
+      };
+
+      atualizarStatus(erros[event.error] || 'Erro no reconhecimento de voz.', 'erro');
+      encerrarEscuta(true);
+    };
+
+    rec.onend = function () {
+      ouvindo = false;
+
+      if (ehMobile && dedoAtivo) {
+        reiniciarEscuta();
+        return;
+      }
+
+      if (!ehMobile && dedoAtivo) {
+        reiniciarEscuta();
+        return;
+      }
+
+      atualizarBotao(false);
+
+      if (!dedoAtivo) {
+        atualizarStatus('Pronto. Segure o microfone para continuar.', 'ouvindo');
+        clearTimeout(timerParar);
+        timerParar = setTimeout(function () {
+          if (!dedoAtivo && !ouvindo) atualizarStatus('', '');
+        }, 2500);
+      }
+    };
+  }
+
+  function reiniciarEscuta() {
+    if (!dedoAtivo && !ehMobile) return;
 
     clearTimeout(timerReinicio);
     timerReinicio = setTimeout(function () {
-      if (!ouvindo) return;
-
-      reiniciando = true;
-      textoConfirmado = textarea ? textarea.value : textoConfirmado;
-      indiceFinalProcessado = 0;
-      ultimoTrechoFinal = '';
+      if (!dedoAtivo && ehMobile) return;
+      if (!dedoAtivo && !ouvindo && ehMobile) return;
 
       try {
         if (recognition) {
@@ -196,49 +200,42 @@
           }
         }
         recognition = criarReconhecimento();
+        vincularEventos(recognition);
         recognition.start();
       } catch {
-        reiniciando = false;
-        parar(true);
-        atualizarStatus('Toque em Falar para continuar o ditado.', 'ouvindo');
+        /* aguarda próximo ciclo */
       }
-    }, PAUSA_REINICIO_MS);
+    }, ehMobile ? 120 : 80);
   }
 
-  function iniciar() {
+  function iniciarEscuta() {
     if (!suportado()) {
-      atualizarStatus(
-        'Seu navegador não suporta ditado por voz. Use Chrome, Edge ou Safari.',
-        'erro'
-      );
+      atualizarStatus('Use Chrome ou Safari no celular para ditado por voz.', 'erro');
       return;
     }
 
-    if (ouvindo) {
-      parar(true);
-      return;
-    }
-
+    clearTimeout(timerParar);
     clearTimeout(timerReinicio);
-    ouvindo = true;
-    reiniciando = false;
-    resetarSessao(true);
-    textoConfirmado = textarea.value;
-
-    recognition = criarReconhecimento();
 
     try {
+      if (recognition && ouvindo) {
+        try {
+          recognition.abort();
+        } catch {
+          /* ignorar */
+        }
+      }
+
+      recognition = criarReconhecimento();
+      vincularEventos(recognition);
       recognition.start();
-      textarea.focus();
     } catch {
-      ouvindo = false;
-      atualizarStatus('Aguarde um instante e toque em Falar novamente.', 'erro');
+      atualizarStatus('Aguarde um instante e tente de novo.', 'erro');
     }
   }
 
-  function parar(silencioso) {
-    ouvindo = false;
-    reiniciando = false;
+  function encerrarEscuta(manterStatus) {
+    dedoAtivo = false;
     clearTimeout(timerReinicio);
 
     if (recognition) {
@@ -253,11 +250,56 @@
       }
     }
 
-    refletirNoCampo('');
+    ouvindo = false;
     atualizarBotao(false);
 
-    if (!silencioso) {
-      atualizarStatus('', '');
+    if (!manterStatus) {
+      clearTimeout(timerParar);
+      timerParar = setTimeout(function () {
+        if (!dedoAtivo && !ouvindo) atualizarStatus('', '');
+      }, 1500);
+    }
+  }
+
+  function aoPressionar(e) {
+    if (e.cancelable) e.preventDefault();
+    ignorarClick = true;
+    clearTimeout(timerParar);
+
+    if (dedoAtivo) return;
+    dedoAtivo = true;
+
+    if (textarea) textarea.focus({ preventScroll: true });
+    iniciarEscuta();
+  }
+
+  function aoSoltar(e) {
+    if (e && e.cancelable) e.preventDefault();
+    dedoAtivo = false;
+    ignorarClick = true;
+    setTimeout(function () {
+      ignorarClick = false;
+    }, 450);
+
+    clearTimeout(timerParar);
+    timerParar = setTimeout(function () {
+      encerrarEscuta(false);
+    }, GRACA_PARAR_MS);
+  }
+
+  function aoCliqueDesktop(e) {
+    if (ignorarClick) {
+      e.preventDefault();
+      return;
+    }
+
+    if (ehMobile) return;
+
+    if (ouvindo || dedoAtivo) {
+      encerrarEscuta(false);
+    } else {
+      dedoAtivo = true;
+      iniciarEscuta();
     }
   }
 
@@ -270,17 +312,48 @@
 
     if (!suportado()) {
       btnFalar.disabled = true;
-      btnFalar.title = 'Ditado por voz não disponível neste navegador';
+      btnFalar.title = 'Ditado por voz indisponível neste navegador';
       return;
     }
 
-    btnFalar.addEventListener('click', iniciar);
+    btnFalar.classList.toggle('btn-voz--mobile', ehMobile);
+    labelBotao(ehMobile ? 'Segure p/ falar' : 'Falar');
+
+    if (ehMobile) {
+      btnFalar.addEventListener('touchstart', aoPressionar, { passive: false });
+      btnFalar.addEventListener('touchend', aoSoltar, { passive: false });
+      btnFalar.addEventListener('touchcancel', aoSoltar, { passive: false });
+      btnFalar.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+      });
+    } else {
+      btnFalar.addEventListener('mousedown', aoPressionar);
+      btnFalar.addEventListener('mouseup', aoSoltar);
+      btnFalar.addEventListener('mouseleave', function () {
+        if (dedoAtivo) aoSoltar();
+      });
+    }
+
+    btnFalar.addEventListener('click', aoCliqueDesktop);
     btnFalar.setAttribute('aria-pressed', 'false');
+
+    if (ehMobile && statusEl) {
+      atualizarStatus('Segure o botão do microfone e fale.', 'ouvindo');
+      setTimeout(function () {
+        if (!ouvindo && !dedoAtivo) atualizarStatus('', '');
+      }, 4000);
+    }
+  }
+
+  function parar() {
+    encerrarEscuta(true);
+    atualizarStatus('', '');
   }
 
   global.PreOrdemVoz = {
     init: init,
     parar: parar,
-    suportado: suportado
+    suportado: suportado,
+    ehMobile: ehMobile
   };
 })(window);
