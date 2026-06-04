@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Solicitação de abertura de pré-ordem">
+  <title>Pré-Ordem — Solicitação</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="header__top">
+        <div class="header__brand">
+          <div class="header__icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header__title">Pré-Ordem</h1>
+            <p class="header__subtitle">Solicitação de abertura de serviço</p>
+          </div>
+        </div>
+        <span class="header__badge" id="badgeHistorico" hidden>0</span>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Navegação principal">
+        <button type="button" class="tabs__btn tabs__btn--active" id="tabNova" role="tab" aria-selected="true" aria-controls="viewForm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Solicitação
+        </button>
+        <button type="button" class="tabs__btn" id="tabHistorico" role="tab" aria-selected="false" aria-controls="viewHistorico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Minhas Solicitações
+        </button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <!-- Formulário -->
+      <section id="viewForm" class="view view--active" role="tabpanel">
+        <form id="preOrdemForm" class="form card" novalidate>
+          <div class="field">
+            <label for="unidade" class="field__label">Unidade <span class="required">*</span></label>
+            <select id="unidade" name="unidade" class="field__input field__select" required>
+              <option value="">Selecione a unidade</option>
+              <option value="1">1 — Unidade de Maringá</option>
+              <option value="2">2 — Unidade de Paranacity</option>
+              <option value="13">13 — Unidade de Terra Rica</option>
+            </select>
+            <span class="field__error" id="unidadeError" role="alert"></span>
+          </div>
+
+          <div class="field">
+            <label for="matricula" class="field__label">Matrícula <span class="required">*</span></label>
+            <input type="text" id="matricula" name="matricula" class="field__input" placeholder="Digite sua matrícula" autocomplete="username" required>
+            <span class="field__hint">Unidade e matrícula são lembradas neste aparelho</span>
+            <span class="field__error" id="matriculaError" role="alert"></span>
+          </div>
+
+          <div class="field">
+            <label for="frota" class="field__label">Frota do Equipamento <span class="required">*</span></label>
+            <input type="text" id="frota" name="frota" class="field__input" placeholder="Ex: 12345" autocomplete="off" required>
+            <span class="field__error" id="frotaError" role="alert"></span>
+          </div>
+
+          <div class="field">
+            <label for="sistema" class="field__label">Sistema <span class="required">*</span></label>
+            <select id="sistema" name="sistema" class="field__input field__select" required>
+              <option value="">Selecione o sistema</option>
+              <option value="1">1 — MOTOR</option>
+              <option value="2">2 — TRANSMISSÃO</option>
+              <option value="3">3 — ESTABILIDADE</option>
+              <option value="4">4 — ESTRUTURAL</option>
+              <option value="5">5 — ELÉTRICO</option>
+              <option value="6">6 — RODAGEM</option>
+              <option value="7">7 — CABINE</option>
+              <option value="8">8 — INDUSTRIAL CANA</option>
+              <option value="9">9 — GERAL</option>
+            </select>
+            <span class="field__error" id="sistemaError" role="alert"></span>
+          </div>
+
+          <div class="field">
+            <label for="descricao" class="field__label">Descrição do Serviço <span class="required">*</span></label>
+            <textarea
+              id="descricao"
+              name="descricao"
+              class="field__input field__textarea field__textarea--upper"
+              rows="4"
+              placeholder="DESCREVA O SERVIÇO..."
+              lang="pt-BR"
+              spellcheck="true"
+              autocorrect="on"
+              required
+            ></textarea>
+            <div class="field__tools">
+              <span class="field__hint">Texto em maiúsculas · correção ortográfica ativa</span>
+              <button type="button" id="btnCorrigirTexto" class="btn btn--outline btn--xs">Corrigir ortografia</button>
+            </div>
+            <span class="field__error" id="descricaoError" role="alert"></span>
+          </div>
+
+          <div class="form__actions">
+            <button type="button" id="btnLimpar" class="btn btn--ghost">Limpar</button>
+            <button type="submit" id="btnEnviar" class="btn btn--primary">
+              <span class="btn__text">Enviar Solicitação</span>
+              <span class="btn__loader" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Histórico -->
+      <section id="viewHistorico" class="view" role="tabpanel" hidden>
+        <div class="historico__toolbar card">
+          <div>
+            <h2 class="historico__title">Solicitações salvas</h2>
+            <p class="historico__count" id="historicoCount">0 solicitações</p>
+          </div>
+          <div class="historico__exports" id="historicoExports">
+            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="pdf" disabled>PDF</button>
+            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="xlsx" disabled>Excel</button>
+            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="csv" disabled>CSV</button>
+          </div>
+        </div>
+
+        <div id="historicoLista" class="historico__lista"></div>
+
+        <div id="historicoVazio" class="empty-state" hidden>
+          <div class="empty-state__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h3>Nenhuma solicitação ainda</h3>
+          <p>Envie sua primeira pré-ordem na aba Nova Solicitação.</p>
+          <button type="button" class="btn btn--primary btn--sm" id="btnIrParaForm">Criar solicitação</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Sistema de Pré-Ordem &copy; 2026</p>
+    </footer>
+  </div>
+
+  <!-- Modal sucesso (azul) -->
+  <div id="modalSucesso" class="modal modal--blue" role="dialog" aria-labelledby="modalTitulo" aria-modal="true" hidden>
+    <div class="modal__overlay"></div>
+    <div class="modal__content modal__content--blue">
+      <div class="modal__glow" aria-hidden="true"></div>
+      <div class="modal__check" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 id="modalTitulo" class="modal__title">Solicitação enviada!</h2>
+      <p class="modal__text">Sua pré-ordem foi registrada. Guarde o protocolo:</p>
+      <div class="modal__protocolo" id="protocoloNumero"></div>
+      <div class="resumo-linha resumo-linha--modal" id="modalResumoLinha" title="Resumo da solicitação"></div>
+      <div class="modal__actions">
+        <div class="modal__export-group">
+          <button type="button" class="btn btn--white btn--export-modal" data-formato="pdf">PDF</button>
+          <button type="button" class="btn btn--white btn--export-modal" data-formato="xlsx">Excel</button>
+          <button type="button" class="btn btn--white btn--export-modal" data-formato="csv">CSV</button>
+        </div>
+        <button type="button" id="btnVerHistorico" class="btn btn--glass">Ver minhas solicitações</button>
+        <button type="button" id="btnNovaSolicitacao" class="btn btn--link">Nova solicitação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal detalhe -->
+  <div id="modalDetalhe" class="modal" role="dialog" aria-labelledby="detalheTitulo" aria-modal="true" hidden>
+    <div class="modal__overlay"></div>
+    <div class="modal__content modal__content--detail card">
+      <button type="button" class="modal__close" id="btnFecharDetalhe" aria-label="Fechar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="detail__header">
+        <span class="detail__protocolo" id="detalheProtocolo"></span>
+        <span class="detail__data" id="detalheData"></span>
+      </div>
+      <p class="resumo-linha resumo-linha--detail" id="detalheLinha"></p>
+      <div class="modal__export-group modal__export-group--detail">
+        <button type="button" class="btn btn--outline btn--sm btn--export-detalhe" data-formato="pdf">PDF</button>
+        <button type="button" class="btn btn--outline btn--sm btn--export-detalhe" data-formato="xlsx">Excel</button>
+        <button type="button" class="btn btn--outline btn--sm btn--export-detalhe" data-formato="csv">CSV</button>
+      </div>
+      <div class="modal__actions modal__actions--row">
+        <button type="button" id="btnExcluirDetalhe" class="btn btn--danger btn--ghost btn--full">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/texto.js"></script>
+  <script src="js/planilha.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
