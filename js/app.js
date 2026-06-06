@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'preOrdens';
   const PREFS_KEY = 'preOrdemPrefs';
 
   const UNIDADES = {
@@ -24,15 +23,21 @@
 
   let ultimaSolicitacao = null;
   let detalheAtual = null;
+  let filtroUnidadeAtivo = '';
 
   const form = document.getElementById('preOrdemForm');
   const viewForm = document.getElementById('viewForm');
   const viewHistorico = document.getElementById('viewHistorico');
+  const viewLancamento = document.getElementById('viewLancamento');
   const tabNova = document.getElementById('tabNova');
   const tabHistorico = document.getElementById('tabHistorico');
+  const tabLancamento = document.getElementById('tabLancamento');
   const historicoLista = document.getElementById('historicoLista');
   const historicoVazio = document.getElementById('historicoVazio');
   const historicoCount = document.getElementById('historicoCount');
+  const lancamentoLista = document.getElementById('lancamentoLista');
+  const lancamentoVazio = document.getElementById('lancamentoVazio');
+  const lancamentoCount = document.getElementById('lancamentoCount');
   const badgeHistorico = document.getElementById('badgeHistorico');
   const historicoExports = document.getElementById('historicoExports');
   const btnIrParaForm = document.getElementById('btnIrParaForm');
@@ -68,24 +73,41 @@
     descricao: document.getElementById('descricaoError')
   };
 
-  function getHistorico() {
-    try {
-      const lista = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      return lista.map(function (item, i) {
-        if (!item.id) item.id = item.protocolo || 'legacy-' + i;
-        if (item.preOrdem === undefined) item.preOrdem = '';
-        if (item.descricao) item.descricao = PreOrdemTexto.normalizarDescricao(item.descricao);
-        return item;
-      });
-    } catch {
-      return [];
-    }
+  // ===== API =====
+
+  async function apiListar(status) {
+    const url = status ? '/api/solicitacoes?status=' + status : '/api/solicitacoes';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Erro ao carregar solicitações');
+    return res.json();
   }
 
-  function setHistorico(lista) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-    atualizarUI();
+  async function apiSalvar(dados) {
+    const res = await fetch('/api/solicitacoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados)
+    });
+    if (!res.ok) throw new Error('Erro ao salvar solicitação');
+    return res.json();
   }
+
+  async function apiExcluir(id) {
+    const res = await fetch('/api/solicitacoes/' + id, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erro ao excluir solicitação');
+  }
+
+  async function apiLancar(id, preOrdem) {
+    const res = await fetch('/api/solicitacoes/' + id + '/pre-ordem', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preOrdem: preOrdem })
+    });
+    if (!res.ok) throw new Error('Erro ao lançar pré-ordem');
+    return res.json();
+  }
+
+  // ===== Preferências =====
 
   function carregarPreferencias() {
     try {
@@ -96,20 +118,7 @@
       if (prefs.matricula) {
         fields.matricula.value = somenteNumeros(prefs.matricula);
       }
-    } catch {
-      /* ignora prefs inválidas */
-    }
-  }
-
-  function somenteNumeros(valor) {
-    return String(valor || '').replace(/\D/g, '');
-  }
-
-  function aplicarSomenteNumeros(elemento) {
-    const limpo = somenteNumeros(elemento.value);
-    if (elemento.value !== limpo) {
-      elemento.value = limpo;
-    }
+    } catch { /* ignora */ }
   }
 
   function salvarPreferencias() {
@@ -120,18 +129,29 @@
     }));
   }
 
-  function exportarDados(lista, formato) {
-    if (!lista || !lista.length) return;
-    if (typeof PreOrdemCompartilhar !== 'undefined') {
-      PreOrdemCompartilhar.abrir(lista, formato);
-      return;
-    }
-    if (formato === 'pdf') {
-      if (lista.length === 1) PreOrdemPDF.exportar(lista[0]);
-      else PreOrdemPDF.exportarTodas(lista);
-    } else {
-      PreOrdemPlanilha.exportar(lista, formato);
-    }
+  // ===== Utilidades =====
+
+  function somenteNumeros(valor) {
+    return String(valor || '').replace(/\D/g, '');
+  }
+
+  function aplicarSomenteNumeros(elemento) {
+    const limpo = somenteNumeros(elemento.value);
+    if (elemento.value !== limpo) elemento.value = limpo;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function formatarData(iso) {
+    return PreOrdemPDF.formatarData(iso);
   }
 
   function gerarProtocolo() {
@@ -140,9 +160,7 @@
     return 'PO-' + data + '-' + seq;
   }
 
-  function formatarData(iso) {
-    return PreOrdemPDF.formatarData(iso);
-  }
+  // ===== Validação =====
 
   function clearErrors() {
     Object.keys(fields).forEach(function (key) {
@@ -170,7 +188,6 @@
       setError('matricula', 'Informe a matrícula (somente números)');
       valid = false;
     }
-
     const frota = somenteNumeros(fields.frota.value);
     fields.frota.value = frota;
     if (!frota) {
@@ -209,12 +226,7 @@
     };
   }
 
-  function salvarSolicitacao(dados) {
-    const historico = getHistorico();
-    historico.unshift(dados);
-    setHistorico(historico);
-    return dados;
-  }
+  // ===== UI helpers =====
 
   function setLoading(loading) {
     btnEnviar.disabled = loading;
@@ -237,23 +249,44 @@
     lockBody(false);
   }
 
-  function showTab(tab) {
-    const isForm = tab === 'form';
-    viewForm.classList.toggle('view--active', isForm);
-    viewForm.hidden = !isForm;
-    viewHistorico.classList.toggle('view--active', !isForm);
-    viewHistorico.hidden = isForm;
-    tabNova.classList.toggle('tabs__btn--active', isForm);
-    tabHistorico.classList.toggle('tabs__btn--active', !isForm);
-    tabNova.setAttribute('aria-selected', isForm);
-    tabHistorico.setAttribute('aria-selected', !isForm);
-    if (!isForm) renderHistorico();
+  function badgeStatus(status) {
+    const labels = { pendente: 'Pendente', lancada: 'Lançada' };
+    return '<span class="status-badge status-badge--' + status + '">' + (labels[status] || status) + '</span>';
   }
 
-  function renderHistorico() {
-    const lista = getHistorico();
-    historicoLista.innerHTML = '';
+  // ===== Tabs =====
 
+  function showTab(tab) {
+    const views = { form: viewForm, historico: viewHistorico, lancamento: viewLancamento };
+    const tabs = { form: tabNova, historico: tabHistorico, lancamento: tabLancamento };
+
+    Object.keys(views).forEach(function (key) {
+      const active = key === tab;
+      views[key].classList.toggle('view--active', active);
+      views[key].hidden = !active;
+      tabs[key].classList.toggle('tabs__btn--active', active);
+      tabs[key].setAttribute('aria-selected', active);
+    });
+
+    if (tab === 'historico') renderHistorico();
+    if (tab === 'lancamento') renderLancamento();
+  }
+
+  // ===== Histórico =====
+
+  async function renderHistorico() {
+    historicoLista.innerHTML = '<div class="loading-state">Carregando...</div>';
+    historicoVazio.hidden = true;
+
+    let lista = [];
+    try {
+      lista = await apiListar();
+    } catch {
+      historicoLista.innerHTML = '<div class="error-state">Erro ao carregar. Verifique se o servidor está rodando.</div>';
+      return;
+    }
+
+    historicoLista.innerHTML = '';
     const vazio = lista.length === 0;
     historicoVazio.hidden = !vazio;
     historicoLista.hidden = vazio;
@@ -263,41 +296,100 @@
 
     const n = lista.length;
     historicoCount.textContent = n === 1 ? '1 solicitação' : n + ' solicitações';
+    badgeHistorico.textContent = n;
+    badgeHistorico.hidden = n === 0;
+
+    const tabela = document.createElement('div');
+    tabela.className = 'hist-table card';
+    tabela.innerHTML =
+      '<div class="hist-table__head">' +
+        '<span>Status</span>' +
+        '<span>Data</span>' +
+        '<span>Frota</span>' +
+        '<span>Matrícula</span>' +
+        '<span>Sistema</span>' +
+        '<span>Descrição</span>' +
+        '<span>Pré-Ordem</span>' +
+        '<span></span>' +
+      '</div>';
+
+    lista.forEach(function (item) {
+      const row = document.createElement('div');
+      row.className = 'hist-table__row';
+      row.innerHTML =
+        '<span class="hist-cell hist-cell--status">' + badgeStatus(item.status) + '</span>' +
+        '<span class="hist-cell hist-cell--data">' + escapeHtml(formatarData(item.dataHora)) + '</span>' +
+        '<span class="hist-cell hist-cell--num">' + escapeHtml(item.frota) + '</span>' +
+        '<span class="hist-cell hist-cell--num">' + escapeHtml(item.matricula) + '</span>' +
+        '<span class="hist-cell" title="' + escapeAttr(item.sistema.nome) + '">' + escapeHtml(item.sistema.nome) + '</span>' +
+        '<span class="hist-cell hist-cell--desc" title="' + escapeAttr(item.descricao) + '">' + escapeHtml(item.descricao) + '</span>' +
+        '<span class="hist-cell hist-cell--po">' + (item.preOrdem ? escapeHtml(item.preOrdem) : '<span class="hist-empty">—</span>') + '</span>' +
+        '<span class="hist-cell hist-cell--actions">' +
+          '<button type="button" class="btn btn--ghost btn--xs hist-btn-ver" data-action="ver" data-id="' + item.id + '">Ver</button>' +
+        '</span>';
+      tabela.appendChild(row);
+    });
+
+    historicoLista.appendChild(tabela);
+
+    historicoLista._lista = lista;
+  }
+
+  // ===== Lançamento =====
+
+  async function renderLancamento() {
+    lancamentoLista.innerHTML = '<div class="loading-state">Carregando...</div>';
+    lancamentoVazio.hidden = true;
+
+    let lista = [];
+    try {
+      lista = await apiListar('pendente');
+    } catch {
+      lancamentoLista.innerHTML = '<div class="error-state">Erro ao carregar. Verifique se o servidor está rodando.</div>';
+      return;
+    }
+
+    if (filtroUnidadeAtivo) {
+      lista = lista.filter(function (item) {
+        return item.unidade.codigo === filtroUnidadeAtivo;
+      });
+    }
+
+    lancamentoLista.innerHTML = '';
+    const vazio = lista.length === 0;
+    lancamentoVazio.hidden = !vazio;
+    lancamentoLista.hidden = vazio;
+    lancamentoCount.textContent = vazio ? '0 pendentes' : lista.length + (lista.length === 1 ? ' pendente' : ' pendentes');
 
     lista.forEach(function (item) {
       const card = document.createElement('article');
-      card.className = 'historico-card card';
-      const linha = PreOrdemTexto.montarLinhaResumo(item);
+      card.className = 'lancamento-card card';
+      card.dataset.id = item.id;
       card.innerHTML =
-        '<p class="resumo-linha resumo-linha--card" title="' + escapeAttr(linha) + '">' + escapeHtml(linha) + '</p>' +
-        '<div class="historico-card__actions">' +
-          '<button type="button" class="btn btn--ghost btn--sm" data-action="ver" data-id="' + item.id + '">Ver</button>' +
-          '<button type="button" class="btn btn--outline btn--sm" data-action="export" data-formato="pdf" data-id="' + item.id + '">PDF</button>' +
-          '<button type="button" class="btn btn--outline btn--sm" data-action="export" data-formato="xlsx" data-id="' + item.id + '">Excel</button>' +
-          '<button type="button" class="btn btn--outline btn--sm" data-action="export" data-formato="csv" data-id="' + item.id + '">CSV</button>' +
+        '<div class="lancamento-card__info">' +
+          '<div class="lancamento-card__header">' +
+            '<span class="lancamento-card__protocolo">' + escapeHtml(item.protocolo) + '</span>' +
+            '<span class="card-data">' + escapeHtml(formatarData(item.dataHora)) + '</span>' +
+          '</div>' +
+          '<div class="lancamento-card__detalhes">' +
+            '<span class="detalhe-chip">Frota <strong>' + escapeHtml(item.frota) + '</strong></span>' +
+            '<span class="detalhe-chip">Matrícula <strong>' + escapeHtml(item.matricula) + '</strong></span>' +
+            '<span class="detalhe-chip">' + escapeHtml(item.sistema.nome) + '</span>' +
+          '</div>' +
+          '<p class="lancamento-card__descricao">' + escapeHtml(item.descricao) + '</p>' +
+        '</div>' +
+        '<div class="lancamento-card__form">' +
+          '<div class="lancamento-input-wrap">' +
+            '<input type="text" class="field__input lancamento-input" inputmode="numeric" pattern="[0-9]*" placeholder="Nº da Pré-Ordem" aria-label="Número da pré-ordem">' +
+            '<button type="button" class="btn btn--primary btn--sm lancamento-btn" data-id="' + item.id + '">Lançar</button>' +
+          '</div>' +
+          '<span class="lancamento-error" role="alert"></span>' +
         '</div>';
-      historicoLista.appendChild(card);
+      lancamentoLista.appendChild(card);
     });
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function escapeAttr(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;');
-  }
-
-  function buscarPorId(id) {
-    return getHistorico().find(function (item) {
-      return item.id === id || item.protocolo === id;
-    });
-  }
+  // ===== Detalhe =====
 
   function abrirDetalhe(item) {
     detalheAtual = item;
@@ -314,35 +406,45 @@
     if (modalSucesso.hidden) lockBody(false);
   }
 
-  function excluirSolicitacao(id) {
+  async function excluirSolicitacao(id) {
     if (!confirm('Deseja excluir esta solicitação?')) return;
-    const lista = getHistorico().filter(function (item) {
-      return item.id !== id && item.protocolo !== id;
-    });
-    setHistorico(lista);
+    try {
+      await apiExcluir(id);
+    } catch {
+      alert('Erro ao excluir. Tente novamente.');
+      return;
+    }
     fecharDetalhe();
+    renderHistorico();
   }
 
-  function atualizarUI() {
-    const n = getHistorico().length;
-    badgeHistorico.textContent = n;
-    badgeHistorico.hidden = n === 0;
-    if (!viewHistorico.hidden) renderHistorico();
+  function exportarDados(lista, formato) {
+    if (!lista || !lista.length) return;
+    if (typeof PreOrdemCompartilhar !== 'undefined') {
+      PreOrdemCompartilhar.abrir(lista, formato);
+      return;
+    }
+    if (formato === 'pdf') {
+      if (lista.length === 1) PreOrdemPDF.exportar(lista[0]);
+      else PreOrdemPDF.exportarTodas(lista);
+    } else {
+      PreOrdemPlanilha.exportar(lista, formato);
+    }
   }
 
   function corrigirCampoDescricao() {
     const texto = fields.descricao.value;
     if (!texto.trim()) return;
-
     btnCorrigirTexto.disabled = true;
     btnCorrigirTexto.textContent = 'Corrigindo...';
-
     PreOrdemTexto.corrigirOrtografia(texto).then(function (corrigido) {
       fields.descricao.value = corrigido;
       btnCorrigirTexto.disabled = false;
       btnCorrigirTexto.textContent = 'Corrigir ortografia';
     });
   }
+
+  // ===== Eventos de formulário =====
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -357,22 +459,25 @@
 
     PreOrdemTexto.corrigirOrtografia(fields.descricao.value).then(function (descricaoCorrigida) {
       fields.descricao.value = descricaoCorrigida;
-
       if (!validate()) {
         setLoading(false);
         return;
       }
 
-      setTimeout(function () {
-        salvarPreferencias();
-        const dados = salvarSolicitacao(getFormData());
-        ultimaSolicitacao = dados;
+      salvarPreferencias();
+      const dados = getFormData();
+
+      apiSalvar(dados).then(function (salvo) {
+        ultimaSolicitacao = salvo;
         setLoading(false);
         form.reset();
         clearErrors();
         carregarPreferencias();
-        showModalSucesso(dados);
-      }, 400);
+        showModalSucesso(salvo);
+      }).catch(function () {
+        setLoading(false);
+        alert('Erro ao salvar solicitação. Verifique se o servidor está rodando.');
+      });
     });
   });
 
@@ -393,8 +498,11 @@
     }
   });
 
+  // ===== Eventos de tabs =====
+
   tabNova.addEventListener('click', function () { showTab('form'); });
   tabHistorico.addEventListener('click', function () { showTab('historico'); });
+  tabLancamento.addEventListener('click', function () { showTab('lancamento'); });
   btnIrParaForm.addEventListener('click', function () { showTab('form'); });
 
   btnNovaSolicitacao.addEventListener('click', function () {
@@ -409,6 +517,8 @@
     showTab('historico');
   });
 
+  // ===== Eventos de modal sucesso =====
+
   if (modalSucessoContent) {
     modalSucessoContent.addEventListener('click', function (e) {
       const btn = e.target.closest('.btn--export-modal');
@@ -417,37 +527,100 @@
     });
   }
 
+  modalSucesso.querySelector('.modal__overlay').addEventListener('click', hideModalSucesso);
+
+  // ===== Eventos de detalhe =====
+
   document.querySelectorAll('.btn--export-detalhe').forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (detalheAtual) exportarDados([detalheAtual], btn.dataset.formato);
     });
   });
 
-  historicoExports.addEventListener('click', function (e) {
-    const btn = e.target.closest('.btn-export');
-    if (!btn || btn.disabled) return;
-    exportarDados(getHistorico(), btn.dataset.formato);
-  });
-
-  fields.unidade.addEventListener('change', salvarPreferencias);
-  fields.matricula.addEventListener('blur', salvarPreferencias);
-
   btnExcluirDetalhe.addEventListener('click', function () {
-    if (detalheAtual) excluirSolicitacao(detalheAtual.id || detalheAtual.protocolo);
+    if (detalheAtual) excluirSolicitacao(detalheAtual.id);
   });
 
   btnFecharDetalhe.addEventListener('click', fecharDetalhe);
   modalDetalhe.querySelector('.modal__overlay').addEventListener('click', fecharDetalhe);
-  modalSucesso.querySelector('.modal__overlay').addEventListener('click', hideModalSucesso);
+
+  // ===== Eventos de histórico (delegação) =====
+
+  historicoExports.addEventListener('click', function (e) {
+    const btn = e.target.closest('.btn-export');
+    if (!btn || btn.disabled) return;
+    const lista = historicoLista._lista || [];
+    exportarDados(lista, btn.dataset.formato);
+  });
 
   historicoLista.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
-    const item = buscarPorId(btn.dataset.id);
+    const lista = historicoLista._lista || [];
+    const item = lista.find(function (i) { return i.id === btn.dataset.id; });
     if (!item) return;
     if (btn.dataset.action === 'ver') abrirDetalhe(item);
     if (btn.dataset.action === 'export') exportarDados([item], btn.dataset.formato);
   });
+
+  // ===== Eventos de lançamento (delegação) =====
+
+  lancamentoLista.addEventListener('click', async function (e) {
+    const btn = e.target.closest('.lancamento-btn');
+    if (!btn) return;
+
+    const card = btn.closest('.lancamento-card');
+    const input = card.querySelector('.lancamento-input');
+    const errorEl = card.querySelector('.lancamento-error');
+    const preOrdem = somenteNumeros(input.value);
+
+    if (!preOrdem) {
+      errorEl.textContent = 'Informe o número da pré-ordem';
+      input.focus();
+      return;
+    }
+
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Lançando...';
+
+    try {
+      await apiLancar(btn.dataset.id, preOrdem);
+      card.classList.add('lancamento-card--lancada');
+      card.innerHTML =
+        '<div class="lancamento-card__sucesso">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+          'Pré-Ordem <strong>' + escapeHtml(preOrdem) + '</strong> lançada com sucesso!' +
+        '</div>';
+      setTimeout(function () {
+        card.style.transition = 'opacity 0.4s, transform 0.4s';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(30px)';
+        setTimeout(function () {
+          card.remove();
+          const restantes = lancamentoLista.querySelectorAll('.lancamento-card:not(.lancamento-card--lancada)').length;
+          const vazio = restantes === 0;
+          lancamentoVazio.hidden = !vazio;
+          lancamentoLista.hidden = vazio;
+          lancamentoCount.textContent = vazio ? '0 pendentes' : restantes + (restantes === 1 ? ' pendente' : ' pendentes');
+        }, 400);
+      }, 1200);
+    } catch {
+      errorEl.textContent = 'Erro ao lançar. Tente novamente.';
+      btn.disabled = false;
+      btn.textContent = 'Lançar';
+    }
+  });
+
+  lancamentoLista.addEventListener('input', function (e) {
+    const input = e.target.closest('.lancamento-input');
+    if (!input) return;
+    aplicarSomenteNumeros(input);
+    const card = input.closest('.lancamento-card');
+    if (card) card.querySelector('.lancamento-error').textContent = '';
+  });
+
+  // ===== Eventos de campos numéricos =====
 
   ['matricula', 'frota'].forEach(function (nome) {
     fields[nome].addEventListener('input', function () {
@@ -463,8 +636,7 @@
       const inicio = fields[nome].selectionStart;
       const fim = fields[nome].selectionEnd;
       const atual = fields[nome].value;
-      fields[nome].value =
-        somenteNumeros(atual.slice(0, inicio) + texto + atual.slice(fim));
+      fields[nome].value = somenteNumeros(atual.slice(0, inicio) + texto + atual.slice(fim));
       fields[nome].dispatchEvent(new Event('input'));
     });
   });
@@ -479,6 +651,11 @@
     });
   });
 
+  fields.unidade.addEventListener('change', salvarPreferencias);
+  fields.matricula.addEventListener('blur', salvarPreferencias);
+
+  // ===== Voz =====
+
   if (typeof PreOrdemVoz !== 'undefined') {
     PreOrdemVoz.init({
       textarea: fields.descricao,
@@ -487,6 +664,28 @@
     });
   }
 
+  // ===== Filtro de unidade (lançamento) =====
+
+  const filtroUnidade = document.getElementById('filtroUnidade');
+  if (filtroUnidade) {
+    filtroUnidade.addEventListener('click', function (e) {
+      const btn = e.target.closest('.filtro-btn');
+      if (!btn) return;
+      filtroUnidadeAtivo = btn.dataset.unidade;
+      filtroUnidade.querySelectorAll('.filtro-btn').forEach(function (b) {
+        b.classList.toggle('filtro-btn--active', b === btn);
+      });
+      renderLancamento();
+    });
+  }
+
+  // ===== Init =====
+
   carregarPreferencias();
-  atualizarUI();
+
+  apiListar().then(function (lista) {
+    const n = lista.length;
+    badgeHistorico.textContent = n;
+    badgeHistorico.hidden = n === 0;
+  }).catch(function () {});
 })();

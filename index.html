@@ -40,6 +40,10 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
           Minhas Solicitações
         </button>
+        <button type="button" class="tabs__btn" id="tabLancamento" role="tab" aria-selected="false" aria-controls="viewLancamento">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Lançar Pré-Ordem
+        </button>
       </nav>
     </header>
 
@@ -163,6 +167,32 @@
           <button type="button" class="btn btn--primary btn--sm" id="btnIrParaForm">Criar solicitação</button>
         </div>
       </section>
+
+      <!-- Lançamento -->
+      <section id="viewLancamento" class="view" role="tabpanel" hidden>
+        <div class="historico__toolbar card">
+          <div>
+            <h2 class="historico__title">Solicitações pendentes</h2>
+            <p class="historico__count" id="lancamentoCount">0 pendentes</p>
+          </div>
+          <div class="filtro-unidade" id="filtroUnidade" role="group" aria-label="Filtrar por unidade">
+            <button type="button" class="filtro-btn filtro-btn--active" data-unidade="">Todas</button>
+            <button type="button" class="filtro-btn" data-unidade="1">Maringá</button>
+            <button type="button" class="filtro-btn" data-unidade="2">Paranacity</button>
+            <button type="button" class="filtro-btn" data-unidade="13">Terra Rica</button>
+          </div>
+        </div>
+
+        <div id="lancamentoLista" class="lancamento__lista"></div>
+
+        <div id="lancamentoVazio" class="empty-state" hidden>
+          <div class="empty-state__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <h3>Nenhuma solicitação pendente</h3>
+          <p>Quando houver solicitações sem pré-ordem, elas aparecerão aqui.</p>
+        </div>
+      </section>
     </main>
 
     <footer class="footer">
@@ -179,8 +209,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h2 id="modalTitulo" class="modal__title">Solicitação enviada!</h2>
-      <p class="modal__text">Sua pré-ordem foi registrada. Guarde o protocolo:</p>
-      <div class="modal__protocolo" id="protocoloNumero"></div>
+      <p class="modal__text">Sua pré-ordem foi registrada com sucesso.</p>
       <div class="resumo-linha resumo-linha--modal" id="modalResumoLinha" title="Resumo da solicitação"></div>
       <div class="modal__actions">
         <div class="modal__export-group">
