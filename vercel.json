@@ -3,7 +3,21 @@
     { "source": "/api/solicitacoes/:id/pre-ordem", "destination": "/api/solicitacoes/[id]/pre-ordem" },
     { "source": "/api/solicitacoes/:id/arquivar",  "destination": "/api/solicitacoes/[id]/arquivar" },
     { "source": "/api/solicitacoes/:id",            "destination": "/api/solicitacoes/[id]" },
-    { "source": "/api/solicitacoes",                "destination": "/api/solicitacoes" },
-    { "source": "/(.*)",                            "destination": "/index.html" }
+    { "source": "/api/solicitacoes",                "destination": "/api/solicitacoes" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Content-Type",  "value": "application/javascript" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    }
   ]
 }
