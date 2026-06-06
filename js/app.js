@@ -46,7 +46,6 @@
   const btnEnviar = document.getElementById('btnEnviar');
   const btnCorrigirTexto = document.getElementById('btnCorrigirTexto');
   const modalSucesso = document.getElementById('modalSucesso');
-  const protocoloNumero = document.getElementById('protocoloNumero');
   const modalResumoLinha = document.getElementById('modalResumoLinha');
   const btnNovaSolicitacao = document.getElementById('btnNovaSolicitacao');
   const btnVerHistorico = document.getElementById('btnVerHistorico');
@@ -246,7 +245,6 @@
   }
 
   function showModalSucesso(dados) {
-    protocoloNumero.textContent = dados.protocolo;
     modalResumoLinha.textContent = PreOrdemTexto.montarLinhaResumo(dados);
     modalSucesso.hidden = false;
     lockBody(true);
