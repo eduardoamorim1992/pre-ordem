@@ -244,6 +244,21 @@
     document.body.style.overflow = lock ? 'hidden' : '';
   }
 
+  function showToast(msg, tipo) {
+    var existing = document.getElementById('appToast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'app-toast app-toast--' + (tipo || 'info');
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.classList.add('app-toast--visible'); }, 10);
+    setTimeout(function () {
+      toast.classList.remove('app-toast--visible');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 4000);
+  }
+
   function showModalSucesso(dados) {
     modalResumoLinha.textContent = PreOrdemTexto.montarLinhaResumo(dados);
     modalSucesso.hidden = false;
@@ -504,7 +519,7 @@
         showModalSucesso(salvo);
       }).catch(function () {
         setLoading(false);
-        alert('Erro ao salvar solicitação. Verifique se o servidor está rodando.');
+        showToast('Falha ao enviar. Verifique sua conexão e tente novamente.', 'erro');
       });
     });
   });

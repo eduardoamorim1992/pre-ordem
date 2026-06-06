@@ -1449,6 +1449,31 @@ body {
   background: rgba(255,255,255,0.1);
 }
 
+/* ===== Toast de notificação ===== */
+.app-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: #1e293b;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  max-width: 90vw;
+  text-align: center;
+}
+.app-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.app-toast--erro { background: #dc2626; }
+.app-toast--sucesso { background: #16a34a; }
+
 /* ===== Mobile: tabela vira cards ===== */
 @media (max-width: 639px) {
   .hist-table__head { display: none; }
