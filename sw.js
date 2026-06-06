@@ -1,4 +1,4 @@
-const CACHE = 'pre-ordem-v1';
+const CACHE = 'pre-ordem-v2';
 const ASSETS = [
   '/',
   '/index.html',

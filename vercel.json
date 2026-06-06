@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/solicitacoes/:id/pre-ordem", "destination": "/api/solicitacoes/[id]/pre-ordem" },
+    { "source": "/api/solicitacoes/:id/arquivar",  "destination": "/api/solicitacoes/[id]/arquivar" },
     { "source": "/api/solicitacoes/:id",            "destination": "/api/solicitacoes/[id]" },
     { "source": "/api/solicitacoes",                "destination": "/api/solicitacoes" },
     { "source": "/(.*)",                            "destination": "/index.html" }

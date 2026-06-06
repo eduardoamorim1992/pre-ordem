@@ -589,11 +589,51 @@ body {
 }
 
 /* ===== Histórico ===== */
-.historico__toolbar {
+.historico__toolbar-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.historico__toolbar-bottom {
+  border-top: 1px solid var(--slate-100);
+  padding-top: 0.6rem;
+}
+
+.btn-arquivadas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate-500);
+  background: transparent;
+  border: 1.5px solid var(--slate-200);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-arquivadas:hover {
+  color: var(--slate-700);
+  border-color: var(--slate-400);
+  background: var(--slate-50);
+}
+
+.btn-arquivadas--active {
+  color: var(--blue-700);
+  border-color: var(--blue-300);
+  background: var(--blue-50);
+}
+
+.historico__toolbar {
+  display: flex;
+  flex-direction: column;
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
@@ -1087,6 +1127,8 @@ body {
   overflow: visible;
 }
 
+.hist-row--arquivada { opacity: 0.6; background: var(--slate-50); }
+
 .hist-btn-ver {
   padding: 0.3rem 0.6rem;
   font-size: 0.72rem;
@@ -1115,6 +1157,12 @@ body {
   background: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
+}
+
+.status-badge--arquivada {
+  background: var(--slate-100);
+  color: var(--slate-500);
+  border: 1px solid var(--slate-200);
 }
 
 /* ===== Histórico card melhorado ===== */
@@ -1399,6 +1447,84 @@ body {
 .pwa-banner__close:hover {
   color: #fff;
   background: rgba(255,255,255,0.1);
+}
+
+/* ===== Mobile: tabela vira cards ===== */
+@media (max-width: 639px) {
+  .hist-table__head { display: none; }
+
+  .hist-table__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--slate-100);
+    min-width: unset;
+  }
+
+  .hist-table__row:last-child { border-bottom: none; }
+
+  .hist-cell {
+    padding: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .hist-cell--status { margin-bottom: 0.45rem; }
+
+  .hist-cell--data {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* agrupa frota e matrícula numa linha */
+  .hist-cell--num {
+    display: none;
+  }
+
+  .hist-table__row::before {
+    content: attr(data-frota) ' · ' attr(data-matricula);
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--slate-900);
+    margin-bottom: 0.25rem;
+  }
+
+  .hist-cell--desc {
+    font-size: 0.78rem;
+    color: var(--slate-600);
+    margin-bottom: 0.4rem;
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hist-cell--po {
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .hist-cell--po::before { content: 'Pré-Ordem: '; color: var(--slate-400); font-weight: 400; }
+
+  .hist-cell--actions {
+    justify-content: flex-start;
+  }
+
+  /* Lançamento mobile */
+  .lancamento-input-wrap { flex-direction: column; }
+  .lancamento-btn { width: 100%; }
+
+  /* Form mobile */
+  .field__textarea-wrap .field__textarea { padding-bottom: 5.5rem; }
+
+  /* Tabs menores */
+  .tabs__btn { font-size: 0.72rem; padding: 0.65rem 0.3rem; gap: 0.25rem; }
+  .tabs__btn svg { display: none; }
 }
 
 /* ===== Responsive ===== */

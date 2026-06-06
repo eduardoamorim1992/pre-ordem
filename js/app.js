@@ -24,6 +24,7 @@
   let ultimaSolicitacao = null;
   let detalheAtual = null;
   let filtroUnidadeAtivo = '';
+  let mostrarArquivadas = false;
 
   const form = document.getElementById('preOrdemForm');
   const viewForm = document.getElementById('viewForm');
@@ -52,6 +53,7 @@
   const modalSucessoContent = document.querySelector('#modalSucesso .modal__content--blue');
   const modalDetalhe = document.getElementById('modalDetalhe');
   const btnFecharDetalhe = document.getElementById('btnFecharDetalhe');
+  const btnArquivarDetalhe = document.getElementById('btnArquivarDetalhe');
   const btnExcluirDetalhe = document.getElementById('btnExcluirDetalhe');
   const detalheProtocolo = document.getElementById('detalheProtocolo');
   const detalheData = document.getElementById('detalheData');
@@ -95,6 +97,12 @@
   async function apiExcluir(id) {
     const res = await fetch('/api/solicitacoes/' + id, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erro ao excluir solicitação');
+  }
+
+  async function apiArquivar(id) {
+    const res = await fetch('/api/solicitacoes/' + id + '/arquivar', { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    if (!res.ok) throw new Error('Erro ao arquivar');
+    return res.json();
   }
 
   async function apiLancar(id, preOrdem) {
@@ -286,6 +294,18 @@
       return;
     }
 
+    lista = lista.filter(function (i) {
+      return mostrarArquivadas ? i.status === 'arquivada' : i.status !== 'arquivada';
+    });
+
+    const btnToggle = document.getElementById('btnToggleArquivadas');
+    if (btnToggle) {
+      btnToggle.classList.toggle('btn-arquivadas--active', mostrarArquivadas);
+      btnToggle.innerHTML = mostrarArquivadas
+        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Ocultar arquivadas'
+        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Ver arquivadas';
+    }
+
     historicoLista.innerHTML = '';
     const vazio = lista.length === 0;
     historicoVazio.hidden = !vazio;
@@ -316,6 +336,10 @@
     lista.forEach(function (item) {
       const row = document.createElement('div');
       row.className = 'hist-table__row';
+      const arquivada = item.status === 'arquivada';
+      row.classList.toggle('hist-row--arquivada', arquivada);
+      row.dataset.frota = item.frota;
+      row.dataset.matricula = item.matricula;
       row.innerHTML =
         '<span class="hist-cell hist-cell--status">' + badgeStatus(item.status) + '</span>' +
         '<span class="hist-cell hist-cell--data">' + escapeHtml(formatarData(item.dataHora)) + '</span>' +
@@ -396,6 +420,12 @@
     detalheProtocolo.textContent = item.protocolo;
     detalheData.textContent = formatarData(item.dataHora);
     detalheLinha.textContent = PreOrdemTexto.montarLinhaResumo(item);
+    if (btnArquivarDetalhe) {
+      const isArq = item.status === 'arquivada';
+      btnArquivarDetalhe.innerHTML = isArq
+        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Desarquivar'
+        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Arquivar';
+    }
     modalDetalhe.hidden = false;
     lockBody(true);
   }
@@ -661,6 +691,33 @@
       textarea: fields.descricao,
       botao: document.getElementById('btnFalarDescricao'),
       status: document.getElementById('vozStatus')
+    });
+  }
+
+  // ===== Arquivar =====
+
+  if (btnArquivarDetalhe) {
+    btnArquivarDetalhe.addEventListener('click', async function () {
+      if (!detalheAtual) return;
+      const acao = detalheAtual.status === 'arquivada' ? 'desarquivar' : 'arquivar';
+      if (!confirm(acao === 'arquivar' ? 'Arquivar esta solicitação?' : 'Mover de volta para ativas?')) return;
+      try {
+        await apiArquivar(detalheAtual.id);
+        fecharDetalhe();
+        renderHistorico();
+      } catch {
+        alert('Erro ao arquivar. Tente novamente.');
+      }
+    });
+  }
+
+  // ===== Toggle arquivadas =====
+
+  const btnToggleArquivadas = document.getElementById('btnToggleArquivadas');
+  if (btnToggleArquivadas) {
+    btnToggleArquivadas.addEventListener('click', function () {
+      mostrarArquivadas = !mostrarArquivadas;
+      renderHistorico();
     });
   }
 

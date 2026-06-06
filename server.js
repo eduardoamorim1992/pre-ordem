@@ -186,6 +186,20 @@ app.patch('/api/solicitacoes/:id/pre-ordem', function (req, res) {
   );
 });
 
+app.patch('/api/solicitacoes/:id/arquivar', function (req, res) {
+  db.run(
+    `UPDATE solicitacoes SET status = CASE WHEN status = 'arquivada' THEN 'pendente' ELSE 'arquivada' END, atualizado_em = ? WHERE id = ?`,
+    [new Date().toISOString(), req.params.id],
+    function (err) {
+      if (err) { res.status(500).json({ error: 'Erro ao arquivar.' }); return; }
+      if (this.changes === 0) { res.status(404).json({ error: 'Não encontrada.' }); return; }
+      db.get('SELECT * FROM solicitacoes WHERE id = ?', [req.params.id], function (e, row) {
+        res.json(toApi(row));
+      });
+    }
+  );
+});
+
 app.delete('/api/solicitacoes/:id', function (req, res) {
   db.run('DELETE FROM solicitacoes WHERE id = ?', [req.params.id], function (err) {
     if (err) {

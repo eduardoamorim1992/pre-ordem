@@ -152,14 +152,22 @@
       <!-- Histórico -->
       <section id="viewHistorico" class="view" role="tabpanel" hidden>
         <div class="historico__toolbar card">
-          <div>
-            <h2 class="historico__title">Solicitações salvas</h2>
-            <p class="historico__count" id="historicoCount">0 solicitações</p>
+          <div class="historico__toolbar-top">
+            <div>
+              <h2 class="historico__title">Solicitações salvas</h2>
+              <p class="historico__count" id="historicoCount">0 solicitações</p>
+            </div>
+            <div class="historico__exports" id="historicoExports">
+              <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="pdf" disabled>PDF</button>
+              <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="xlsx" disabled>Excel</button>
+              <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="csv" disabled>CSV</button>
+            </div>
           </div>
-          <div class="historico__exports" id="historicoExports">
-            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="pdf" disabled>PDF</button>
-            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="xlsx" disabled>Excel</button>
-            <button type="button" class="btn btn--outline btn--sm btn-export" data-formato="csv" disabled>CSV</button>
+          <div class="historico__toolbar-bottom">
+            <button type="button" id="btnToggleArquivadas" class="btn-arquivadas">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              Ver arquivadas
+            </button>
           </div>
         </div>
 
@@ -280,6 +288,10 @@
         <button type="button" class="btn btn--outline btn--sm btn--export-detalhe" data-formato="csv">CSV</button>
       </div>
       <div class="modal__actions modal__actions--row">
+        <button type="button" id="btnArquivarDetalhe" class="btn btn--ghost btn--full">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          Arquivar
+        </button>
         <button type="button" id="btnExcluirDetalhe" class="btn btn--danger btn--ghost btn--full">Excluir</button>
       </div>
     </div>
