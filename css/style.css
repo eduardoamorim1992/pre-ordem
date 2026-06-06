@@ -1304,6 +1304,103 @@ body {
   border-color: #fecaca;
 }
 
+/* ===== Banner PWA ===== */
+.pwa-banner {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  width: calc(100% - 2rem);
+  max-width: 500px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--slate-900);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.35);
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pwa-banner[hidden] { display: none; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.pwa-banner__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-600);
+  border-radius: 10px;
+}
+
+.pwa-banner__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.pwa-banner__text strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.pwa-banner__text span {
+  font-size: 0.72rem;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-banner__btn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  background: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.pwa-banner__btn:hover {
+  background: var(--blue-50);
+}
+
+.pwa-banner__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.pwa-banner__close:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
 /* ===== Responsive ===== */
 @media (min-width: 640px) {
   .header {
